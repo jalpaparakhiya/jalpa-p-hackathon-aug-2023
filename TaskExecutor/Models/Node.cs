@@ -5,6 +5,8 @@
 		public string Name { get; set; }
 		public NodeStatus Status { get; set; }
 		public string Address { get; set; }
+		public string MemesPath { get; set; }
+
 	}
 
 	public enum NodeStatus

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using TaskExecutor.Models;
@@ -14,29 +15,20 @@ namespace TaskExecutor.Controllers
 	public class NodesController : ControllerBase
 	{
 
-		private TaskAllocator _taskAllocate;
+		private readonly TaskAllocator _taskAllocate;
 
-		public NodesController()
+		public NodesController(TaskAllocator taskAllocator)
 		{
-			_taskAllocate = new TaskAllocator();
+			_taskAllocate = taskAllocator;
 		}
 
 		[HttpPost]
 		[Route("register")]
-		public async Task<IActionResult> RegisterNode([FromBody] NodeRegistrationRequest node)
+		public IActionResult RegisterNode([FromBody] NodeRegistrationRequest node)
 		{
 
-			TaskItem task = new TaskItem
-			{
-				Id = Guid.NewGuid().ToString(),
-				Status = TaskStatus.Pending
-			};
-
-
-			await _taskAllocate.SubmitTask(task, node.MemesPath, node);
-
-			Console.WriteLine($"Task Id: {task.Id}");
-			Console.WriteLine($"Task Status: {task.Status}");
+			_taskAllocate.RegisterNode(node);
+			Console.WriteLine($"Register node {node.Name}...");
 
 			return Ok();
 		}
@@ -50,5 +42,26 @@ namespace TaskExecutor.Controllers
 
 			return Ok();
 		}
+
+		[HttpGet]
+		[Route("task-add")]
+		public async Task<IActionResult> TaskAdd()
+		{
+
+			TaskItem task = new TaskItem
+			{
+				Id = Guid.NewGuid().ToString(),
+				Status = TaskStatus.Pending
+			};
+
+
+			await _taskAllocate.SubmitTask(task);
+
+			Console.WriteLine($"Task Id: {task.Id}");
+			Console.WriteLine($"Task Status: {task.Status}");
+
+			return Ok();
+		}
+
 	}
 }

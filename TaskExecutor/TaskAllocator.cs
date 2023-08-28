@@ -7,29 +7,41 @@ namespace TaskExecutor
 {
 	public class TaskAllocator
 	{
-		private TaskQueue _taskQueue = new TaskQueue();
-		private NodeManager _nodeManager = new NodeManager();
-		private TaskExecutor _taskExecutor = new TaskExecutor();
+		private readonly TaskQueue _taskQueue;
+		private readonly NodeManager _nodeManager;
+		private readonly TaskExecution _taskExecutor;
 
-		public async Task SubmitTask(TaskItem task, string memePath, NodeRegistrationRequest node )
+		public TaskAllocator(TaskQueue taskQueue, NodeManager nodeManager, TaskExecution taskExecutor)
+		{
+			_taskExecutor = taskExecutor;
+			_nodeManager =	nodeManager;
+			_taskQueue = taskQueue;	
+		}
+		public async Task SubmitTask(TaskItem task)
+		{
+			_taskQueue.Enqueue(task);
+			
+			await AllocateTasks();
+		}
+
+		public void RegisterNode(NodeRegistrationRequest node)
 		{
 			_nodeManager.RegisterNode(new Node()
 			{
 				Address = node.Address,
 				Name = node.Name,
-				Status = NodeStatus.Available
+				Status = NodeStatus.Available,
+				MemesPath = node.MemesPath
 			});
-			_taskQueue.Enqueue(task);
-			
-			await AllocateTasks(memePath);
 		}
+
 
 		public async Task UnregisterNode(string name)
 		{
 			await _nodeManager.UnregisterNode(name);
 		}
 
-		private async Task AllocateTasks(string memePath)
+		private async Task AllocateTasks()
 		{
 			while (true)
 			{
@@ -39,14 +51,18 @@ namespace TaskExecutor
 					break;
 
 				var availableNode = _nodeManager.GetAvailableNode();
-				Console.WriteLine($"Available node:{availableNode.Name}");
 				if (availableNode == null)
+				{
+					Console.WriteLine("No any node available....");
+
 					break;
+				}
+				Console.WriteLine($"Available node:{availableNode.Name}");
 
 				task.Status = TaskStatus.Running;
 				availableNode.Status = NodeStatus.Busy;
 
-				await _taskExecutor.ExecuteMemeTask(task, memePath, availableNode);
+				await _taskExecutor.ExecuteMemeTask(task, availableNode);
 
 				availableNode.Status = NodeStatus.Available;
 			}

@@ -4,15 +4,14 @@ using TaskStatus = TaskExecutor.Models.TaskStatus;
 
 namespace TaskExecutor
 {
-	public class TaskExecutor
+	public class TaskExecution
 	{
 		private static readonly HttpClient _httpClient = new HttpClient();
 
-		public async Task ExecuteMemeTask(TaskItem memeTask, string memePath, Node node)
+		public async Task ExecuteMemeTask(TaskItem memeTask, Node node)
 		{
 			try
 			{
-				Console.WriteLine($"Executing task {memeTask.Id} on node {node.Name}...");
 				memeTask.Status = TaskStatus.Running;
 
 				// Fetch meme data from the API
@@ -31,8 +30,9 @@ namespace TaskExecutor
 						// Download and save meme image
 						using (WebClient webClient = new WebClient())
 						{
-							string memeFileName = $"{memePath}\\meme_{memeTask.Id}.jpg";
+							string memeFileName = $"{node.MemesPath}\\meme_{memeTask.Id}.jpg";
 							webClient.DownloadFile(responseMeme.Url, memeFileName);
+							Thread.Sleep(30000);
 							memeTask.Status = TaskStatus.Completed;
 						}
 					}
