@@ -9,7 +9,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
+builder.Services.AddSingleton<TaskQueueManager>();
 builder.Services.AddSingleton<TaskQueue>();
 builder.Services.AddSingleton<NodeManager>();
 builder.Services.AddSingleton<TaskExecution>();

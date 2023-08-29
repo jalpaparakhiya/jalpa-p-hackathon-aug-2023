@@ -24,7 +24,12 @@ namespace TaskExecutor
 
 		public Node GetAvailableNode()
 		{
-			return _nodes.FirstOrDefault(n => n.Status == NodeStatus.Available);
+			return _nodes.OrderBy(n => n.LastUpdated).FirstOrDefault(n => n.Status == NodeStatus.Available);
+		}
+
+		public List<Node> GetNodes()
+		{
+			return _nodes.ToList();
 		}
 	}
 }

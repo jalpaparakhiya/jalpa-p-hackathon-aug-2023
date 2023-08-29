@@ -14,59 +14,57 @@ namespace TaskExecutor
 		public TaskAllocator(TaskQueue taskQueue, NodeManager nodeManager, TaskExecution taskExecutor)
 		{
 			_taskExecutor = taskExecutor;
-			_nodeManager =	nodeManager;
-			_taskQueue = taskQueue;	
+			_nodeManager = nodeManager;
+			_taskQueue = taskQueue;
+			this.AllocateTaskByNode();
 		}
 		public async Task SubmitTask(TaskItem task)
 		{
-			_taskQueue.Enqueue(task);
-			
-			await AllocateTasks();
+			_taskQueue.AddTask(task);
+
+			await AllocateTasks(task);
 		}
 
-		public void RegisterNode(NodeRegistrationRequest node)
+		public List<TaskItem> GetTaskByStatus(TaskStatus status)
 		{
-			_nodeManager.RegisterNode(new Node()
+			return _taskQueue.GetTasksByStatus(status);
+		}
+
+		private async Task AllocateTasks(TaskItem t)
+		{
+
+			var availableNode = _nodeManager.GetAvailableNode();
+			if (availableNode == null)
 			{
-				Address = node.Address,
-				Name = node.Name,
-				Status = NodeStatus.Available,
-				MemesPath = node.MemesPath
-			});
-		}
-
-
-		public async Task UnregisterNode(string name)
-		{
-			await _nodeManager.UnregisterNode(name);
-		}
-
-		private async Task AllocateTasks()
-		{
-			while (true)
-			{
-				Console.WriteLine("Allocating tasks...");
-				var task = _taskQueue.Dequeue();
-				if (task == null)
-					break;
-
-				var availableNode = _nodeManager.GetAvailableNode();
-				if (availableNode == null)
-				{
-					Console.WriteLine("No any node available....");
-
-					break;
-				}
-				Console.WriteLine($"Available node:{availableNode.Name}");
-
-				task.Status = TaskStatus.Running;
-				availableNode.Status = NodeStatus.Busy;
-
-				await _taskExecutor.ExecuteMemeTask(task, availableNode);
-
-				availableNode.Status = NodeStatus.Available;
+				Console.WriteLine("No any node available....");
+				return;
 			}
+			var task = _taskQueue.GetTask(t.Id);
+			if (task == null)
+				return;
+
+			task.Status = TaskStatus.Running;
+			availableNode.Status = NodeStatus.Busy;
+
+			Console.WriteLine($"Allocating tasks to node: {availableNode.Name} and TaskId : {task.Id}({task.Status})");
+
+
+			await _taskExecutor.ExecuteMemeTask(task, availableNode);
+
+			task.Executed = DateTime.Now;
+			availableNode.Status = NodeStatus.Available;
+			availableNode.LastUpdated = DateTime.Now;
+			if(task.Status == TaskStatus.Completed || task.Status == TaskStatus.Failed)
+			{
+				_taskQueue.RemoveTaskFromQueue(task.Id);
+			}
+			Console.WriteLine($"Now node {availableNode.Name} free.");
 		}
 
+		public void AllocateTaskByNode()
+		{
+			Timer timer = new Timer(async _ => await this.AllocateTasks(), null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
+
+		}
 	}
 }
